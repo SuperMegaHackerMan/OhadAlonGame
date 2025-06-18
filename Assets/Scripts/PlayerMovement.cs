@@ -6,78 +6,63 @@ public class PlayerMovement : MonoBehaviour
     public Rigidbody2D rb;
     public Animator animator;
 
-    Vector2 movement;
+    private Vector2 movement;
 
     void Update()
     {
-        // Input
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
 
-        // Prevent diagonal speed boost
         if (movement.magnitude > 1)
             movement = movement.normalized;
 
-        // Update animator
+        if (movement != Vector2.zero)
+        {
+            animator.SetFloat("LastMoveX", movement.x);
+            animator.SetFloat("LastMoveY", movement.y);
+        }
+
         animator.SetFloat("MoveX", movement.x);
         animator.SetFloat("MoveY", movement.y);
         animator.SetBool("IsMoving", movement != Vector2.zero);
 
-        animationHelper();
+        UpdateAnimation();
     }
 
     void FixedUpdate()
     {
-        // Move the player
         rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
     }
 
-    void animationHelper()
+    void UpdateAnimation()
     {
-        if (movement.x == 0 && movement.y > 0)
-        {
-            Debug.Log("Moving Up");
-            animator.Play("Walk_Up");
-        }
-        else if (movement.x == 0 && movement.y < 0)
-        {
-            Debug.Log("Moving Down");
-            animator.Play("Walk_Down");
-        }
-        else if (movement.x < 0 && movement.y == 0)
-        {
-            Debug.Log("Moving Left");
-            animator.Play("Walk_Left");
-        }
-        else if (movement.x > 0 && movement.y == 0)
-        {
-            Debug.Log("Moving Right");
-            animator.Play("Walk_Right");
-        }
-        else if (movement.x > 0 && movement.y > 0)
-        {
-            Debug.Log("Moving Up-Right");
-            animator.Play("Top_Right");
-        }
-        else if (movement.x < 0 && movement.y > 0)
-        {
-            Debug.Log("Moving Up-Left");
-            animator.Play("Top_Left");
-        }
-        else if (movement.x > 0 && movement.y < 0)
-        {
-            Debug.Log("Moving Down-Right");
-            animator.Play("Down_Right");
-        }
-        else if (movement.x < 0 && movement.y < 0)
-        {
-            Debug.Log("Moving Down-Left");
-            animator.Play("Down_Left");
-        }
-        else
-        {
-            Debug.Log("Idle");
-            // animator.Play("Idle");
-        }
+        float dirX = animator.GetBool("IsMoving") ? movement.x : animator.GetFloat("LastMoveX");
+        float dirY = animator.GetBool("IsMoving") ? movement.y : animator.GetFloat("LastMoveY");
+
+        string state = GetAnimationState(dirX, dirY, animator.GetBool("IsMoving"));
+        Debug.Log(state);
+        animator.Play(state);
+    }
+
+    string GetAnimationState(float x, float y, bool isMoving)
+    {
+        string prefix = isMoving ? "Walk_" : "Idle_";
+        float threshold = 0.1f;
+        Debug.Log("=============");
+        Debug.Log("x: " + x);
+        Debug.Log("y: " + y);
+        // Diagonals
+        if (x > threshold && y > threshold) return prefix + "Top_Right";
+        if (x < -threshold && y > threshold) return prefix + "Top_Left";
+        if (x > threshold && y < -threshold) return prefix + "Down_Right";
+        if (x < -threshold && y < -threshold) return prefix + "Down_Left";
+
+        if (x == 0 && y > 0) return prefix + "Up";
+        if (x == 0 && y < 0) return prefix + "Down";
+        if (x < 0 && y == 0) return prefix + "Left";
+        if (x > 0 && y == 0) return prefix + "Right";
+
+        // Default fallback
+        return "Idle_Down";
     }
 }
